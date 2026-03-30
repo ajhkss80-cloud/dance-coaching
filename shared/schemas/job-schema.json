@@ -1,0 +1,310 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dance Coaching Platform - Job Schemas",
+  "description": "Shared validation schemas for job payloads exchanged between the Node.js server and the Python worker via Redis/BullMQ queues.",
+
+  "definitions": {
+
+    "GenerateJobPayload": {
+      "type": "object",
+      "description": "Payload for a video generation job. Sent from server to worker via the 'generate' queue.",
+      "required": ["jobId", "sourceVideoPath", "referenceImagePath", "options"],
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "description": "Unique job identifier (nanoid)",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceVideoPath": {
+          "type": "string",
+          "description": "Relative path to the uploaded source dance video within the storage directory",
+          "minLength": 1
+        },
+        "referenceImagePath": {
+          "type": "string",
+          "description": "Relative path to the uploaded reference person image within the storage directory",
+          "minLength": 1
+        },
+        "options": {
+          "type": "object",
+          "description": "Generation configuration options",
+          "required": ["maxDurationSec"],
+          "additionalProperties": false,
+          "properties": {
+            "maxDurationSec": {
+              "type": "number",
+              "description": "Maximum output video duration in seconds",
+              "minimum": 1,
+              "maximum": 180
+            },
+            "segmentLengthSec": {
+              "type": "number",
+              "description": "Length of each generation segment in seconds",
+              "minimum": 1,
+              "maximum": 30,
+              "default": 10
+            },
+            "rifeInterpolationFrames": {
+              "type": "integer",
+              "description": "Number of frames to interpolate between keyframes (0 = disabled)",
+              "minimum": 0,
+              "maximum": 4,
+              "default": 2
+            },
+            "backend": {
+              "type": "string",
+              "description": "Override the generation backend for this job",
+              "enum": ["cloud", "local"]
+            }
+          }
+        },
+        "callbackUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional webhook URL to notify on completion"
+        }
+      }
+    },
+
+    "CoachJobPayload": {
+      "type": "object",
+      "description": "Payload for a coaching analysis job. Sent from server to worker via the 'coach' queue.",
+      "required": ["jobId", "originalVideoPath", "userVideoPath"],
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "description": "Unique job identifier (nanoid)",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "originalVideoPath": {
+          "type": "string",
+          "description": "Relative path to the original reference dance video",
+          "minLength": 1
+        },
+        "userVideoPath": {
+          "type": "string",
+          "description": "Relative path to the user's practice video to analyse",
+          "minLength": 1
+        },
+        "options": {
+          "type": "object",
+          "description": "Coaching analysis options",
+          "additionalProperties": false,
+          "properties": {
+            "analysisLevel": {
+              "type": "string",
+              "description": "Depth of movement analysis",
+              "enum": ["basic", "detailed", "expert"],
+              "default": "detailed"
+            },
+            "focusAreas": {
+              "type": "array",
+              "description": "Specific body areas to focus the analysis on",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "full_body",
+                  "upper_body",
+                  "lower_body",
+                  "arms",
+                  "legs",
+                  "head",
+                  "torso",
+                  "timing"
+                ]
+              },
+              "default": ["full_body", "timing"]
+            },
+            "includeOverlayVideo": {
+              "type": "boolean",
+              "description": "Whether to generate a side-by-side comparison overlay video",
+              "default": true
+            }
+          }
+        },
+        "callbackUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional webhook URL to notify on completion"
+        }
+      }
+    },
+
+    "GenerateResult": {
+      "type": "object",
+      "description": "Result returned by the worker after a generation job completes.",
+      "required": ["jobId", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed", "failed"]
+        },
+        "outputVideoPath": {
+          "type": "string",
+          "description": "Relative path to the generated output video (present when status=completed)"
+        },
+        "thumbnailPath": {
+          "type": "string",
+          "description": "Relative path to a thumbnail frame from the output video"
+        },
+        "durationSec": {
+          "type": "number",
+          "description": "Actual duration of the output video in seconds",
+          "minimum": 0
+        },
+        "segmentsProcessed": {
+          "type": "integer",
+          "description": "Number of segments that were generated and stitched",
+          "minimum": 0
+        },
+        "backend": {
+          "type": "string",
+          "description": "Which backend produced this result",
+          "enum": ["cloud", "local"]
+        },
+        "error": {
+          "type": "object",
+          "description": "Error details (present when status=failed)",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Machine-readable error code",
+              "enum": [
+                "BACKEND_UNAVAILABLE",
+                "VIDEO_TOO_LONG",
+                "INVALID_INPUT",
+                "GPU_OOM",
+                "GENERATION_FAILED",
+                "STITCHING_FAILED",
+                "TIMEOUT",
+                "UNKNOWN"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "description": "Human-readable error description"
+            }
+          },
+          "required": ["code", "message"]
+        },
+        "timing": {
+          "type": "object",
+          "description": "Execution timing metrics",
+          "properties": {
+            "totalMs": { "type": "integer", "minimum": 0 },
+            "generationMs": { "type": "integer", "minimum": 0 },
+            "interpolationMs": { "type": "integer", "minimum": 0 },
+            "stitchingMs": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "CoachResult": {
+      "type": "object",
+      "description": "Result returned by the worker after a coaching analysis job completes.",
+      "required": ["jobId", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed", "failed"]
+        },
+        "overallScore": {
+          "type": "number",
+          "description": "Overall similarity score between 0.0 (no match) and 1.0 (perfect match)",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "feedback": {
+          "type": "array",
+          "description": "Ordered list of coaching feedback items",
+          "items": {
+            "type": "object",
+            "required": ["area", "score", "message"],
+            "properties": {
+              "area": {
+                "type": "string",
+                "description": "Body area or aspect this feedback covers"
+              },
+              "score": {
+                "type": "number",
+                "description": "Score for this specific area (0.0 to 1.0)",
+                "minimum": 0.0,
+                "maximum": 1.0
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable coaching feedback"
+              },
+              "timestampSec": {
+                "type": "number",
+                "description": "Video timestamp in seconds where this feedback is most relevant",
+                "minimum": 0
+              },
+              "severity": {
+                "type": "string",
+                "description": "How important this feedback is",
+                "enum": ["info", "suggestion", "important"]
+              }
+            }
+          }
+        },
+        "overlayVideoPath": {
+          "type": "string",
+          "description": "Relative path to the side-by-side comparison video (if requested)"
+        },
+        "poseDataPath": {
+          "type": "string",
+          "description": "Relative path to the raw pose comparison data (JSON)"
+        },
+        "error": {
+          "type": "object",
+          "description": "Error details (present when status=failed)",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "POSE_DETECTION_FAILED",
+                "VIDEO_TOO_SHORT",
+                "INVALID_INPUT",
+                "ANALYSIS_FAILED",
+                "TIMEOUT",
+                "UNKNOWN"
+              ]
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": ["code", "message"]
+        },
+        "timing": {
+          "type": "object",
+          "description": "Execution timing metrics",
+          "properties": {
+            "totalMs": { "type": "integer", "minimum": 0 },
+            "poseExtractionMs": { "type": "integer", "minimum": 0 },
+            "comparisonMs": { "type": "integer", "minimum": 0 },
+            "overlayGenerationMs": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+# ==============================================================================
+# Dance Coaching Platform - Docker Compose (Cloud Mode, No GPU)
+# ==============================================================================
+# Starts the full stack: Redis, API server, and worker (cloud backend).
+#
+# Usage:
+#     docker compose up --build
+#     docker compose up -d          # detached
+#     docker compose down            # stop all
+#
+# For GPU mode, use the override file:
+#     docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+# ==============================================================================
+
+services:
+  # ---------- Redis ----------
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------- API Server (Node.js / Fastify) ----------
+  server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_DIR=/app/storage
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------- Worker (Python, cloud backend) ----------
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_DIR=/app/storage
+      - GENERATION_BACKEND=cloud
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis-data:

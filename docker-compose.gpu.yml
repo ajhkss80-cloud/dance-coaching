@@ -1,0 +1,37 @@
+# ==============================================================================
+# Dance Coaching Platform - Docker Compose GPU Override
+# ==============================================================================
+# Extends docker-compose.yml to enable local GPU-based video generation
+# using MimicMotion on NVIDIA GPUs (tested on RTX 5080, RTX 4090).
+#
+# Requires:
+#   - NVIDIA Container Toolkit installed
+#   - Model weights downloaded (run scripts/setup-mimicmotion.sh first)
+#
+# Usage:
+#     docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+# ==============================================================================
+
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker.gpu
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_DIR=/app/storage
+      - GENERATION_BACKEND=local
+      - MIMICMOTION_MODEL_DIR=/app/models/mimicmotion
+      - MIMICMOTION_REPO_DIR=/app/vendor/MimicMotion
+      - RIFE_MODEL_DIR=/app/models/rife
+    volumes:
+      - ./storage:/app/storage
+      - ./models:/app/models:ro
+      - ./vendor:/app/vendor:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -1,0 +1,38 @@
+# ==============================================================================
+# Dance Coaching Platform - Worker (Python, CPU-only)
+# Lightweight image for cloud-API generation backend (no GPU / PyTorch)
+# ==============================================================================
+
+FROM python:3.12-slim
+
+# System dependencies for OpenCV, mediapipe, and audio processing
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ffmpeg \
+        libgl1-mesa-glx \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Security: run as non-root
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -m appuser
+
+WORKDIR /app
+
+# Install Python dependencies (CPU-only, no torch)
+COPY worker/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy worker source
+COPY worker/src/ ./src/
+
+# Create storage mount point
+RUN mkdir -p /app/storage && chown -R appuser:appgroup /app
+
+USER appuser
+
+# BullMQ worker has no HTTP port; health is monitored via Redis queue status
+CMD ["python", "-m", "src.main"]

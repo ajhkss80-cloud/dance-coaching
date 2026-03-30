@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+server/dist/
+*.js.map
+
+# Environment
+.env
+.env.local
+
+# Storage (generated files)
+storage/uploads/*
+storage/outputs/*
+storage/temp/*
+!storage/uploads/.gitkeep
+!storage/outputs/.gitkeep
+!storage/temp/.gitkeep
+
+# Models (too large for git)
+models/
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+htmlcov/
+.pytest_cache/
+.vitest/

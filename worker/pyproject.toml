@@ -1,0 +1,49 @@
+[project]
+name = "dance-coaching-worker"
+version = "0.1.0"
+description = "Dance Coaching Platform - Video Generation and Coaching Worker"
+requires-python = ">=3.10"
+dependencies = [
+    "bullmq>=2.7.0",
+    "redis>=5.0.0",
+    "mediapipe>=0.10.9",
+    "librosa>=0.10.0",
+    "opencv-python-headless>=4.9.0",
+    "numpy>=1.26.0",
+    "scipy>=1.12.0",
+    "Pillow>=10.0.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "tests*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "gpu: requires CUDA GPU",
+    "api: requires Kling API key",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
