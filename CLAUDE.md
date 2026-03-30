@@ -1,6 +1,80 @@
 # Dance Coaching Platform - LLM Setup & Development Guide
 
-이 문서는 LLM(Claude, ChatGPT 등)이 이 프로젝트를 클론한 후 자동으로 환경을 구성하고 테스트를 실행할 수 있도록 작성되었습니다.
+> **LLM에게**: 이 프로젝트를 처음 접했다면 아래 순서대로 읽고 실행하세요.
+
+---
+
+## 0. LLM 부트스트랩 (가장 먼저 읽기)
+
+### 읽기 순서
+
+```
+1단계: 이 파일(CLAUDE.md) 전체를 읽어라 → 프로젝트 구조, API, 파이프라인 이해
+2단계: .env.example 읽어라 → 환경변수 파악
+3단계: shared/schemas/job-schema.json 읽어라 → 데이터 구조 파악
+4단계: worker/src/application/orchestrator.py 읽어라 → 핵심 파이프라인 로직
+5단계: server/src/di/container.ts 읽어라 → 서버 의존성 구조
+6단계: worker/src/di/container.py 읽어라 → 워커 의존성 구조
+```
+
+### 자동 설치 (OS 감지 후 실행)
+
+```bash
+# Windows (PowerShell)
+git clone https://github.com/ajhkss80-cloud/dance-coaching.git
+cd dance-coaching
+cd server; npm install; cd ..
+cd worker; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt; .venv\Scripts\pip install numpy scipy pydantic python-dotenv httpx Pillow opencv-python-headless; cd ..
+copy .env.example .env
+
+# Linux / macOS
+git clone https://github.com/ajhkss80-cloud/dance-coaching.git
+cd dance-coaching
+cd server && npm install && cd ..
+cd worker && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/pip install numpy scipy pydantic python-dotenv httpx Pillow opencv-python-headless && cd ..
+cp .env.example .env
+```
+
+### 테스트 실행 (설치 확인)
+
+```bash
+# Windows
+cd server; npx vitest run; cd ..
+cd worker; .venv\Scripts\python -m pytest tests/ -v; cd ..
+
+# Linux / macOS
+cd server && npx vitest run && cd ..
+cd worker && .venv/bin/python -m pytest tests/ -v && cd ..
+```
+
+### 예상 결과
+
+```
+Server: 4 test files, 68 tests passed
+Worker: 122 passed, 16 skipped (FFmpeg/MediaPipe 미설치 시 정상)
+Total: 190 passed, 0 failed
+```
+
+### GPU 모드 추가 설치 (RTX 5080/4090/5090 보유 시)
+
+```bash
+# Windows
+.\scripts\setup-mimicmotion.ps1
+# .env 파일에서 GENERATION_BACKEND=local 로 변경
+
+# Linux
+./scripts/setup-mimicmotion.sh
+# .env 파일에서 GENERATION_BACKEND=local 로 변경
+```
+
+### 문제 발생 시 확인 순서
+
+```
+1. Redis 실행 중인가? → docker run -d -p 6379:6379 redis:7-alpine
+2. Node.js 20+ 인가? → node --version
+3. Python 3.10+ 인가? → python --version
+4. FFmpeg 설치됐나? → ffmpeg -version (통합 테스트용, 단위 테스트엔 불필요)
+```
 
 ---
 
