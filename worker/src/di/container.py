@@ -101,6 +101,23 @@ def create_container(
             repo_dir=config.MIMICMOTION_REPO_DIR,
         )
         logger.info("Created MimicMotion local backend")
+    elif config.GENERATION_BACKEND == "comfyui":
+        from src.infrastructure.backends.comfyui_backend import (
+            ComfyUIBackend,
+        )
+
+        backend = ComfyUIBackend(
+            base_url=config.COMFYUI_URL,
+            workflow_template=config.COMFYUI_WORKFLOW_TEMPLATE or None,
+            model_node_class=config.COMFYUI_MODEL_NODE_CLASS,
+            inference_steps=config.COMFYUI_INFERENCE_STEPS,
+            seed=config.COMFYUI_SEED,
+        )
+        logger.info(
+            "Created ComfyUI backend (model: %s, url: %s)",
+            config.COMFYUI_MODEL_NODE_CLASS,
+            config.COMFYUI_URL,
+        )
     else:
         raise ValueError(
             f"Unknown GENERATION_BACKEND: '{config.GENERATION_BACKEND}'"

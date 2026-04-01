@@ -28,6 +28,13 @@ class WorkerConfig(BaseSettings):
     MIMICMOTION_MODEL_DIR: str = "./models/mimicmotion"
     MIMICMOTION_REPO_DIR: str = "./vendor/MimicMotion"
 
+    # --- ComfyUI (local) backend ---
+    COMFYUI_URL: str = "http://localhost:8188"
+    COMFYUI_WORKFLOW_TEMPLATE: str = ""
+    COMFYUI_MODEL_NODE_CLASS: str = "SteadyDancerBasic"
+    COMFYUI_INFERENCE_STEPS: int = 50
+    COMFYUI_SEED: int = 42
+
     # --- Storage ---
     STORAGE_DIR: str = "./storage"
 
@@ -52,7 +59,7 @@ class WorkerConfig(BaseSettings):
     @field_validator("GENERATION_BACKEND")
     @classmethod
     def _validate_backend(cls, v: str) -> str:
-        allowed = {"cloud", "local"}
+        allowed = {"cloud", "local", "comfyui"}
         normalized = v.strip().lower()
         if normalized not in allowed:
             raise ValueError(
