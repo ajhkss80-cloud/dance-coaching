@@ -1,11 +1,8 @@
-"""Kling (EvoLink) cloud backend for video generation.
+"""fal.ai cloud backend for video generation.
 
-Implements the GenerationBackend ABC using the EvoLink API
-for Kling V3 motion-control video generation. EvoLink provides
-the most cost-effective access to Kling models.
-
-Handles submission, polling, download, and retry logic with
-exponential backoff.
+Implements the GenerationBackend ABC using the fal.ai queue API,
+supporting Kling V3 Motion Control and Wan 2.2 Animate Move models.
+Handles submission, polling, download, and retry logic.
 """
 from __future__ import annotations
 
@@ -20,49 +17,46 @@ from src.domain.errors import BackendError
 
 logger = logging.getLogger(__name__)
 
-# EvoLink pricing per second of output (USD)
-_PRICING: dict[str, float] = {
-    "720p": 0.113,
-    "1080p": 0.151,
+# Model ID mapping
+_MODEL_IDS: dict[str, str] = {
+    "kling-v3-standard-mc": "fal-ai/kling-video/v3/standard/motion-control",
+    "kling-v3-pro-mc": "fal-ai/kling-video/v3/pro/motion-control",
+    "wan-animate": "fal-ai/wan/v2.2-14b/animate/move",
 }
 
-# File size limits (bytes)
-_AVATAR_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
-_VIDEO_MAX_BYTES = 100 * 1024 * 1024  # 100 MB
-
-# Polling / retry constants
+# Polling constants
 _POLL_INTERVAL_SEC = 5.0
 _POLL_TIMEOUT_SEC = 600.0
 _MAX_RETRIES = 3
 _INITIAL_BACKOFF_SEC = 2.0
 
 
-class KlingBackend(GenerationBackend):
-    """Cloud-based video generation backend using the EvoLink API for Kling.
+class FalAIBackend(GenerationBackend):
+    """Cloud-based video generation backend using the fal.ai queue API.
 
-    Sends an avatar image and a reference dance segment to the EvoLink
-    Kling V3 motion-control endpoint, polls for task completion,
-    and downloads the resulting video.
+    Supports three models:
+    - Kling V3 Standard MC: Cost-effective motion control
+    - Kling V3 Pro MC: High-quality motion control
+    - Wan 2.2 Animate Move: General-purpose motion transfer
 
     Attributes:
-        api_key: EvoLink API authentication key.
-        quality: Output quality ("720p" or "1080p").
+        api_key: fal.ai API authentication key.
+        model: Model identifier mapped to fal.ai model IDs.
         character_orientation: Orientation mode ("video" or "image").
-        base_url: Base URL for the EvoLink API.
     """
 
     def __init__(
         self,
         api_key: str,
-        quality: str = "720p",
+        model: str = "kling-v3-standard-mc",
         character_orientation: str = "video",
-        base_url: str = "https://api.evolink.ai/v1",
     ) -> None:
         if not api_key:
-            raise BackendError("Kling API key must not be empty")
-        if quality not in ("720p", "1080p"):
+            raise BackendError("fal.ai API key must not be empty")
+        if model not in _MODEL_IDS:
             raise BackendError(
-                f"Quality must be '720p' or '1080p', got '{quality}'"
+                f"Unknown fal.ai model '{model}'. "
+                f"Must be one of: {list(_MODEL_IDS.keys())}"
             )
         if character_orientation not in ("video", "image"):
             raise BackendError(
@@ -71,11 +65,11 @@ class KlingBackend(GenerationBackend):
             )
 
         self._api_key = api_key
-        self._quality = quality
+        self._model = model
+        self._model_id = _MODEL_IDS[model]
         self._character_orientation = character_orientation
-        self._base_url = base_url.rstrip("/")
+        self._base_url = "https://queue.fal.run"
         self._client = None
-        self._total_cost = 0.0
 
     async def initialize(self) -> None:
         """Initialize the HTTP client and verify API connectivity.
@@ -91,32 +85,16 @@ class KlingBackend(GenerationBackend):
             )
 
         self._client = httpx.AsyncClient(
-            base_url=self._base_url,
             headers={
-                "Authorization": f"Bearer {self._api_key}",
+                "Authorization": f"Key {self._api_key}",
                 "Content-Type": "application/json",
             },
             timeout=httpx.Timeout(30.0, read=120.0),
         )
 
-        # Test connectivity
-        try:
-            response = await self._client.get("/health")
-            if response.status_code >= 500:
-                raise BackendError(
-                    f"EvoLink API health check returned {response.status_code}"
-                )
-        except BackendError:
-            raise
-        except Exception as exc:
-            logger.warning(
-                "EvoLink API health check failed (non-fatal): %s", exc
-            )
-
-        self._total_cost = 0.0
         logger.info(
-            "Kling (EvoLink) backend initialized (quality=%s, orientation=%s)",
-            self._quality,
+            "fal.ai backend initialized (model=%s, orientation=%s)",
+            self._model,
             self._character_orientation,
         )
 
@@ -127,11 +105,11 @@ class KlingBackend(GenerationBackend):
         segment_index: int,
         options: dict,
     ) -> Path:
-        """Generate a video segment via the EvoLink Kling API.
+        """Generate a video segment via the fal.ai queue API.
 
-        Reads the avatar image and reference segment, validates file
-        sizes, submits them to the EvoLink endpoint, polls for task
-        completion, and downloads the result.
+        Encodes the avatar image and reference segment as base64 data URIs,
+        submits them to the model endpoint, polls for completion,
+        and downloads the result.
 
         Args:
             avatar_path: Path to the avatar image file.
@@ -150,25 +128,13 @@ class KlingBackend(GenerationBackend):
                 "Backend not initialized. Call initialize() first."
             )
 
-        logger.info("Generating segment %d via EvoLink (Kling)", segment_index)
+        logger.info(
+            "Generating segment %d via fal.ai (%s)",
+            segment_index,
+            self._model,
+        )
 
-        # Validate file sizes
-        avatar_size = avatar_path.stat().st_size
-        if avatar_size > _AVATAR_MAX_BYTES:
-            raise BackendError(
-                f"Avatar file too large ({avatar_size / 1024 / 1024:.1f} MB). "
-                f"Maximum is {_AVATAR_MAX_BYTES / 1024 / 1024:.0f} MB."
-            )
-
-        segment_size = segment_path.stat().st_size
-        if segment_size > _VIDEO_MAX_BYTES:
-            raise BackendError(
-                f"Segment video too large "
-                f"({segment_size / 1024 / 1024:.1f} MB). "
-                f"Maximum is {_VIDEO_MAX_BYTES / 1024 / 1024:.0f} MB."
-            )
-
-        # Encode as base64 data URIs for EvoLink
+        # Encode inputs as base64 data URIs
         avatar_b64 = base64.b64encode(avatar_path.read_bytes()).decode("ascii")
         segment_b64 = base64.b64encode(
             segment_path.read_bytes()
@@ -185,17 +151,20 @@ class KlingBackend(GenerationBackend):
         image_url = f"data:{avatar_mime};base64,{avatar_b64}"
         video_url = f"data:video/mp4;base64,{segment_b64}"
 
-        # Submit generation task
-        task_id = await self._submit_task(
+        # Submit generation request
+        request_id = await self._submit_request(
             image_url, video_url, segment_index
         )
 
-        # Poll until completion
-        download_url = await self._poll_task(task_id, segment_index)
+        # Poll for completion
+        await self._poll_status(request_id, segment_index)
+
+        # Get result
+        result_url = await self._get_result(request_id, segment_index)
 
         # Download result
         output_path = await self._download_result(
-            download_url, segment_index
+            result_url, segment_index
         )
 
         logger.info(
@@ -210,26 +179,19 @@ class KlingBackend(GenerationBackend):
         if self._client is not None:
             await self._client.aclose()
             self._client = None
-            logger.info(
-                "Kling (EvoLink) backend closed "
-                "(total estimated cost: $%.4f)",
-                self._total_cost,
-            )
+            logger.info("fal.ai backend closed")
 
     def name(self) -> str:
-        """Return the backend name."""
-        return "kling-evolink"
+        """Return the backend name including the model variant."""
+        return f"falai-{self._model}"
 
-    async def _submit_task(
+    async def _submit_request(
         self,
         image_url: str,
         video_url: str,
         segment_index: int,
     ) -> str:
-        """Submit a video generation task to the EvoLink API.
-
-        Uses the /videos/generations endpoint with Kling V3
-        motion-control model configuration.
+        """Submit a generation request to the fal.ai queue.
 
         Args:
             image_url: Data URI for the avatar image.
@@ -237,36 +199,28 @@ class KlingBackend(GenerationBackend):
             segment_index: Segment index for logging.
 
         Returns:
-            The task ID for polling.
+            The request ID for polling.
 
         Raises:
             BackendError: After exhausting retries.
         """
+        url = f"{self._base_url}/{self._model_id}"
         payload = {
-            "model": "kling-v3-motion-control",
-            "image_urls": [image_url],
-            "video_urls": [video_url],
-            "quality": self._quality,
-            "model_params": {
-                "character_orientation": self._character_orientation,
-                "keep_sound": False,
-                "watermark_info": {"show": False},
-            },
+            "image_url": image_url,
+            "video_url": video_url,
+            "character_orientation": self._character_orientation,
         }
 
         last_error: Exception | None = None
 
         for attempt in range(_MAX_RETRIES):
             try:
-                response = await self._client.post(
-                    "/videos/generations",
-                    json=payload,
-                )
+                response = await self._client.post(url, json=payload)
 
                 if response.status_code == 429:
                     backoff = _INITIAL_BACKOFF_SEC * (2**attempt)
                     logger.warning(
-                        "EvoLink API rate limited (429) on segment %d, "
+                        "fal.ai API rate limited (429) on segment %d, "
                         "retry %d/%d in %.1fs",
                         segment_index,
                         attempt + 1,
@@ -278,25 +232,25 @@ class KlingBackend(GenerationBackend):
 
                 if response.status_code >= 400:
                     raise BackendError(
-                        f"EvoLink API submission failed for segment "
+                        f"fal.ai API submission failed for segment "
                         f"{segment_index} (status {response.status_code}): "
                         f"{response.text[:200]}"
                     )
 
                 data = response.json()
-                task_id = data.get("id") or data.get("task_id")
-                if not task_id:
+                request_id = data.get("request_id")
+                if not request_id:
                     raise BackendError(
-                        f"EvoLink API returned no task ID for segment "
+                        f"fal.ai API returned no request_id for segment "
                         f"{segment_index}: {data}"
                     )
 
                 logger.info(
-                    "Submitted segment %d, task_id=%s",
+                    "Submitted segment %d, request_id=%s",
                     segment_index,
-                    task_id,
+                    request_id,
                 )
-                return task_id
+                return request_id
 
             except BackendError:
                 raise
@@ -304,7 +258,7 @@ class KlingBackend(GenerationBackend):
                 last_error = exc
                 backoff = _INITIAL_BACKOFF_SEC * (2**attempt)
                 logger.warning(
-                    "EvoLink API request error on segment %d (attempt %d): %s",
+                    "fal.ai API request error on segment %d (attempt %d): %s",
                     segment_index,
                     attempt + 1,
                     exc,
@@ -316,98 +270,57 @@ class KlingBackend(GenerationBackend):
             f"{_MAX_RETRIES} retries: {last_error}"
         )
 
-    async def _poll_task(self, task_id: str, segment_index: int) -> str:
-        """Poll an EvoLink task until completion or timeout.
-
-        Uses the /tasks/{task_id} GET endpoint.
+    async def _poll_status(
+        self, request_id: str, segment_index: int
+    ) -> None:
+        """Poll the fal.ai queue until the request completes.
 
         Args:
-            task_id: The task ID from submission.
+            request_id: The request ID from submission.
             segment_index: Segment index for logging.
-
-        Returns:
-            The download URL for the generated video.
 
         Raises:
             BackendError: On task failure or timeout.
         """
+        url = (
+            f"{self._base_url}/{self._model_id}"
+            f"/requests/{request_id}/status"
+        )
         elapsed = 0.0
 
         while elapsed < _POLL_TIMEOUT_SEC:
             try:
-                response = await self._client.get(f"/tasks/{task_id}")
+                response = await self._client.get(url)
 
                 if response.status_code >= 400:
                     raise BackendError(
-                        f"Task status check failed for {task_id} "
+                        f"Status check failed for {request_id} "
                         f"(status {response.status_code})"
                     )
 
                 data = response.json()
                 status = data.get("status", "unknown")
 
-                if status in ("completed", "succeeded", "done"):
-                    # Extract video URL from response
-                    video_url = (
-                        data.get("video_url")
-                        or data.get("output", {}).get("video_url")
-                        or data.get("result", {}).get("video_url")
+                if status == "COMPLETED":
+                    logger.info(
+                        "Segment %d request %s completed",
+                        segment_index,
+                        request_id,
                     )
-                    if not video_url:
-                        # Try output array
-                        outputs = data.get("output", [])
-                        if isinstance(outputs, list) and outputs:
-                            video_url = outputs[0] if isinstance(
-                                outputs[0], str
-                            ) else outputs[0].get("url")
+                    return
 
-                    if not video_url:
-                        raise BackendError(
-                            f"Task {task_id} completed but no video URL "
-                            f"found: {data}"
-                        )
-
-                    # Log estimated cost
-                    duration = data.get("duration") or data.get(
-                        "usage", {}
-                    ).get("duration", 0)
-                    if duration:
-                        try:
-                            duration_val = float(duration)
-                        except (TypeError, ValueError):
-                            duration_val = 0.0
-                        cost_per_sec = _PRICING.get(self._quality, 0.113)
-                        cost = duration_val * cost_per_sec
-                        self._total_cost += cost
-                        logger.info(
-                            "Segment %d cost estimate: $%.4f "
-                            "(%.1fs @ $%.3f/s)",
-                            segment_index,
-                            cost,
-                            duration_val,
-                            cost_per_sec,
-                        )
-
-                    return video_url
-
-                if status in ("failed", "error", "cancelled"):
-                    error_msg = data.get(
-                        "error", data.get("message", "Unknown")
-                    )
+                if status == "FAILED":
+                    error_msg = data.get("error", "Unknown error")
                     raise BackendError(
-                        f"EvoLink task {task_id} failed for segment "
+                        f"fal.ai request {request_id} failed for segment "
                         f"{segment_index}: {error_msg}"
                     )
 
-                # Log progress if available
-                progress = data.get("progress", "")
                 logger.debug(
-                    "Segment %d task %s status: %s progress: %s "
-                    "(%.0fs elapsed)",
+                    "Segment %d request %s status: %s (%.0fs elapsed)",
                     segment_index,
-                    task_id,
+                    request_id,
                     status,
-                    progress,
                     elapsed,
                 )
 
@@ -415,23 +328,79 @@ class KlingBackend(GenerationBackend):
                 raise
             except Exception as exc:
                 logger.warning(
-                    "Error polling task %s: %s", task_id, exc
+                    "Error polling request %s: %s", request_id, exc
                 )
 
             await asyncio.sleep(_POLL_INTERVAL_SEC)
             elapsed += _POLL_INTERVAL_SEC
 
         raise BackendError(
-            f"EvoLink task {task_id} timed out after {_POLL_TIMEOUT_SEC}s "
-            f"for segment {segment_index}"
+            f"fal.ai request {request_id} timed out after "
+            f"{_POLL_TIMEOUT_SEC}s for segment {segment_index}"
         )
+
+    async def _get_result(
+        self, request_id: str, segment_index: int
+    ) -> str:
+        """Retrieve the result of a completed fal.ai request.
+
+        Args:
+            request_id: The request ID.
+            segment_index: Segment index for logging.
+
+        Returns:
+            The download URL for the generated video.
+
+        Raises:
+            BackendError: If result retrieval fails.
+        """
+        url = (
+            f"{self._base_url}/{self._model_id}"
+            f"/requests/{request_id}"
+        )
+
+        try:
+            response = await self._client.get(url)
+
+            if response.status_code >= 400:
+                raise BackendError(
+                    f"Result retrieval failed for {request_id} "
+                    f"(status {response.status_code})"
+                )
+
+            data = response.json()
+
+            # fal.ai returns video URL in various nested structures
+            video_url = None
+            video_data = data.get("video", {})
+            if isinstance(video_data, dict):
+                video_url = video_data.get("url")
+            elif isinstance(video_data, str):
+                video_url = video_data
+
+            if not video_url:
+                # Try alternative response shapes
+                video_url = data.get("video_url") or data.get("output_url")
+
+            if not video_url:
+                raise BackendError(
+                    f"Request {request_id} completed but no video URL "
+                    f"found: {data}"
+                )
+
+            return video_url
+
+        except BackendError:
+            raise
+        except Exception as exc:
+            raise BackendError(
+                f"Error retrieving result for {request_id}: {exc}"
+            )
 
     async def _download_result(
         self, url: str, segment_index: int
     ) -> Path:
         """Download the generated video from the given URL.
-
-        Note: EvoLink video URLs are valid for 24 hours.
 
         Args:
             url: Download URL for the generated video.
@@ -457,7 +426,7 @@ class KlingBackend(GenerationBackend):
                 output_path = Path(
                     tempfile.mktemp(
                         suffix=".mp4",
-                        prefix=f"kling_seg{segment_index}_",
+                        prefix=f"falai_seg{segment_index}_",
                     )
                 )
                 output_path.write_bytes(response.content)

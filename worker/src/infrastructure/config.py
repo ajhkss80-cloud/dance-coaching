@@ -20,9 +20,22 @@ class WorkerConfig(BaseSettings):
     # --- Backend selection ---
     GENERATION_BACKEND: str = "cloud"
 
-    # --- Kling (cloud) backend ---
+    # --- Cloud provider selection ---
+    CLOUD_PROVIDER: str = "wavespeed"
+    CLOUD_MODEL: str = "steady-dancer"
+
+    # --- WaveSpeed backend ---
+    WAVESPEED_API_KEY: str = ""
+    WAVESPEED_RESOLUTION: str = "720p"
+
+    # --- fal.ai backend ---
+    FALAI_API_KEY: str = ""
+    FALAI_MODEL: str = "kling-v3-standard-mc"
+
+    # --- Kling (EvoLink) backend ---
     KLING_API_KEY: str = ""
-    KLING_API_BASE_URL: str = "https://api.klingai.com/v1"
+    KLING_QUALITY: str = "720p"
+    KLING_CHARACTER_ORIENTATION: str = "video"
 
     # --- MimicMotion (local) backend ---
     MIMICMOTION_MODEL_DIR: str = "./models/mimicmotion"
@@ -67,6 +80,17 @@ class WorkerConfig(BaseSettings):
             )
         return normalized
 
+    @field_validator("CLOUD_PROVIDER")
+    @classmethod
+    def _validate_cloud_provider(cls, v: str) -> str:
+        allowed = {"wavespeed", "kling", "falai"}
+        normalized = v.strip().lower()
+        if normalized not in allowed:
+            raise ValueError(
+                f"CLOUD_PROVIDER must be one of {allowed}, got '{v}'"
+            )
+        return normalized
+
     @field_validator("SEGMENT_MAX_LENGTH_SEC")
     @classmethod
     def _validate_segment_length(cls, v: int) -> int:
@@ -105,8 +129,21 @@ class WorkerConfig(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_cloud_requires_api_key(self) -> WorkerConfig:
-        if self.GENERATION_BACKEND == "cloud" and not self.KLING_API_KEY:
+        if self.GENERATION_BACKEND != "cloud":
+            return self
+
+        provider = self.CLOUD_PROVIDER
+        if provider == "wavespeed" and not self.WAVESPEED_API_KEY:
             raise ValueError(
-                "KLING_API_KEY is required when GENERATION_BACKEND is 'cloud'"
+                "WAVESPEED_API_KEY is required when CLOUD_PROVIDER is "
+                "'wavespeed'"
+            )
+        if provider == "kling" and not self.KLING_API_KEY:
+            raise ValueError(
+                "KLING_API_KEY is required when CLOUD_PROVIDER is 'kling'"
+            )
+        if provider == "falai" and not self.FALAI_API_KEY:
+            raise ValueError(
+                "FALAI_API_KEY is required when CLOUD_PROVIDER is 'falai'"
             )
         return self

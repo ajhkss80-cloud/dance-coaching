@@ -346,12 +346,15 @@ class TestE2EBackendSwitching:
     """Test that the system correctly switches between backends."""
 
     def test_cloud_backend_selection(self) -> None:
-        """Cloud config creates a KlingBackend when no override given."""
-        from src.infrastructure.backends.kling_backend import KlingBackend
+        """Cloud config creates a WaveSpeedBackend by default."""
+        from src.infrastructure.backends.wavespeed_backend import (
+            WaveSpeedBackend,
+        )
 
         config = WorkerConfig(
             GENERATION_BACKEND="cloud",
-            KLING_API_KEY="test-key-for-e2e",
+            CLOUD_PROVIDER="wavespeed",
+            WAVESPEED_API_KEY="test-key-for-e2e",
         )
 
         container = create_container(
@@ -360,7 +363,7 @@ class TestE2EBackendSwitching:
             pose_extractor_override=FakePoseExtractor(),
         )
 
-        assert isinstance(container.backend, KlingBackend)
+        assert isinstance(container.backend, WaveSpeedBackend)
         assert container.config.GENERATION_BACKEND == "cloud"
 
     def test_local_backend_selection(self) -> None:

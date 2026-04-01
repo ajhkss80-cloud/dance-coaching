@@ -44,6 +44,67 @@ class Container:
     coach_use_case: CoachDanceUseCase
 
 
+def _create_cloud_backend(config: WorkerConfig) -> GenerationBackend:
+    """Create the appropriate cloud backend based on CLOUD_PROVIDER.
+
+    Args:
+        config: Application configuration.
+
+    Returns:
+        A GenerationBackend instance for the selected cloud provider.
+
+    Raises:
+        ValueError: If the provider is unknown.
+    """
+    provider = config.CLOUD_PROVIDER
+
+    if provider == "wavespeed":
+        from src.infrastructure.backends.wavespeed_backend import (
+            WaveSpeedBackend,
+        )
+
+        backend = WaveSpeedBackend(
+            api_key=config.WAVESPEED_API_KEY,
+            model=config.CLOUD_MODEL,
+            resolution=config.WAVESPEED_RESOLUTION,
+        )
+        logger.info(
+            "Created WaveSpeed cloud backend (model=%s, resolution=%s)",
+            config.CLOUD_MODEL,
+            config.WAVESPEED_RESOLUTION,
+        )
+        return backend
+
+    if provider == "kling":
+        from src.infrastructure.backends.kling_backend import KlingBackend
+
+        backend = KlingBackend(
+            api_key=config.KLING_API_KEY,
+            quality=config.KLING_QUALITY,
+            character_orientation=config.KLING_CHARACTER_ORIENTATION,
+        )
+        logger.info(
+            "Created Kling (EvoLink) cloud backend (quality=%s)",
+            config.KLING_QUALITY,
+        )
+        return backend
+
+    if provider == "falai":
+        from src.infrastructure.backends.falai_backend import FalAIBackend
+
+        backend = FalAIBackend(
+            api_key=config.FALAI_API_KEY,
+            model=config.FALAI_MODEL,
+        )
+        logger.info(
+            "Created fal.ai cloud backend (model=%s)",
+            config.FALAI_MODEL,
+        )
+        return backend
+
+    raise ValueError(f"Unknown CLOUD_PROVIDER: '{provider}'")
+
+
 def create_container(
     config: WorkerConfig | None = None,
     *,
@@ -58,7 +119,8 @@ def create_container(
     """Build the dependency graph from configuration.
 
     Selects the appropriate backend implementation based on
-    ``config.GENERATION_BACKEND`` and wires all components together.
+    ``config.GENERATION_BACKEND`` and ``config.CLOUD_PROVIDER``,
+    and wires all components together.
 
     Args:
         config: Application configuration. If ``None``, a new
@@ -67,6 +129,8 @@ def create_container(
             one from config. Useful for testing.
         audio_processor_override: Optional audio processor override.
         pose_extractor_override: Optional pose extractor override.
+        aligner_override: Optional dance aligner override.
+        scorer_override: Optional dance scorer override.
         stitcher_override: Optional video stitcher override.
         interpolator_override: Optional frame interpolator override.
 
@@ -84,13 +148,7 @@ def create_container(
         backend = backend_override
         logger.info("Using overridden backend: %s", backend.name())
     elif config.GENERATION_BACKEND == "cloud":
-        from src.infrastructure.backends.kling_backend import KlingBackend
-
-        backend = KlingBackend(
-            api_key=config.KLING_API_KEY,
-            base_url=config.KLING_API_BASE_URL,
-        )
-        logger.info("Created Kling cloud backend")
+        backend = _create_cloud_backend(config)
     elif config.GENERATION_BACKEND == "local":
         from src.infrastructure.backends.mimicmotion_backend import (
             MimicMotionBackend,
