@@ -15,16 +15,16 @@ interface ScoreRadarChartProps {
 }
 
 const JOINT_LABELS: Record<string, string> = {
-  left_arm: "Left Arm",
-  right_arm: "Right Arm",
-  left_leg: "Left Leg",
-  right_leg: "Right Leg",
-  torso: "Torso",
-  head: "Head",
-  leftArm: "Left Arm",
-  rightArm: "Right Arm",
-  leftLeg: "Left Leg",
-  rightLeg: "Right Leg",
+  left_arm: "왼팔",
+  right_arm: "오른팔",
+  left_leg: "왼다리",
+  right_leg: "오른다리",
+  torso: "몸통",
+  head: "머리",
+  leftArm: "왼팔",
+  rightArm: "오른팔",
+  leftLeg: "왼다리",
+  rightLeg: "오른다리",
 };
 
 export function ScoreRadarChart({ jointScores, className }: ScoreRadarChartProps) {
@@ -54,7 +54,7 @@ export function ScoreRadarChart({ jointScores, className }: ScoreRadarChartProps
             tick={{ fill: "var(--color-muted-foreground, #737373)", fontSize: 10 }}
           />
           <Radar
-            name="Score"
+            name="점수"
             dataKey="score"
             stroke={color}
             fill={color}

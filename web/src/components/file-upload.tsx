@@ -55,7 +55,7 @@ export function FileUpload({ accept, label, onFileChange, className }: FileUploa
         <div className="flex items-start gap-4">
           <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
             {isImage ? (
-              <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+              <img src={preview} alt="미리보기" className="h-full w-full object-cover" />
             ) : (
               <video src={preview} className="h-full w-full object-cover" muted />
             )}
@@ -64,7 +64,7 @@ export function FileUpload({ accept, label, onFileChange, className }: FileUploa
             <p className="truncate text-sm font-medium">{file.name}</p>
             <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onRemove} aria-label="Remove file">
+          <Button variant="ghost" size="icon" onClick={onRemove} aria-label="파일 삭제">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -90,7 +90,7 @@ export function FileUpload({ accept, label, onFileChange, className }: FileUploa
         onClick={() => inputRef.current?.click()}
         role="button"
         tabIndex={0}
-        aria-label={`Upload ${label}`}
+        aria-label={`${label} 업로드`}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -108,7 +108,7 @@ export function FileUpload({ accept, label, onFileChange, className }: FileUploa
         />
         <FileIcon className="mb-2 h-8 w-8 text-muted-foreground" aria-hidden="true" />
         <p className="text-sm font-medium">
-          {isDragging ? "Drop file here" : "Click or drag to upload"}
+          {isDragging ? "여기에 파일을 놓으세요" : "클릭하거나 드래그하여 업로드"}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           {isImage ? "PNG, JPG, WebP" : "MP4, WebM, MOV"}

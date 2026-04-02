@@ -21,7 +21,7 @@ export function GenerationForm() {
   const [state, setState] = useState<FormState>("idle");
   const [avatarImage, setAvatarImage] = useState<File | null>(null);
   const [referenceVideo, setReferenceVideo] = useState<File | null>(null);
-  const [backend, setBackend] = useState("cloud");
+  const [backend, setBackend] = useState("wavespeed-steadydancer");
   const [maxDuration, setMaxDuration] = useState(10);
   const [segmentLength, setSegmentLength] = useState(5);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -36,14 +36,14 @@ export function GenerationForm() {
   if (wsStatus === "completed" && state === "processing" && wsResult) {
     setState("completed");
     setResult(wsResult as GenerateResult);
-    if (jobId) updateJob(jobId, { status: "completed", summary: "Dance generation completed" });
-    addToast({ title: "Generation complete", description: "Your dance video is ready!" });
+    if (jobId) updateJob(jobId, { status: "completed", summary: "댄스 영상 생성 완료" });
+    addToast({ title: "생성 완료", description: "댄스 영상이 준비되었습니다!" });
   }
   if (wsStatus === "failed" && state === "processing") {
     setState("failed");
-    setErrorMsg(wsError || "Generation failed");
-    if (jobId) updateJob(jobId, { status: "failed", summary: wsError || "Failed" });
-    addToast({ title: "Generation failed", description: wsError || "An error occurred", variant: "destructive" });
+    setErrorMsg(wsError || "생성 실패");
+    if (jobId) updateJob(jobId, { status: "failed", summary: wsError || "실패" });
+    addToast({ title: "생성 실패", description: wsError || "오류가 발생했습니다", variant: "destructive" });
   }
 
   const handleSubmit = useCallback(async () => {
@@ -67,9 +67,9 @@ export function GenerationForm() {
       addJob({ jobId: response.jobId, type: "generate", status: "active" });
     } catch (err) {
       setState("failed");
-      const msg = err instanceof Error ? err.message : "Failed to start generation";
+      const msg = err instanceof Error ? err.message : "생성을 시작할 수 없습니다";
       setErrorMsg(msg);
-      addToast({ title: "Error", description: msg, variant: "destructive" });
+      addToast({ title: "오류", description: msg, variant: "destructive" });
     }
   }, [avatarImage, referenceVideo, backend, maxDuration, segmentLength, addJob, addToast]);
 
@@ -86,21 +86,21 @@ export function GenerationForm() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Generate Dance Video</CardTitle>
+          <CardTitle>댄스 영상 생성</CardTitle>
           <CardDescription>
-            Upload an avatar image and reference dance video to generate a new dance performance.
+            아바타 이미지와 레퍼런스 댄스 영상을 업로드하여 새로운 댄스 퍼포먼스를 생성합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <FileUpload
               accept="image/*"
-              label="Avatar Image"
+              label="아바타 이미지"
               onFileChange={setAvatarImage}
             />
             <FileUpload
               accept="video/*"
-              label="Reference Video"
+              label="레퍼런스 영상"
               onFileChange={setReferenceVideo}
             />
           </div>
@@ -109,8 +109,8 @@ export function GenerationForm() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Max Duration</label>
-              <span className="text-sm text-muted-foreground">{maxDuration}s</span>
+              <label className="text-sm font-medium">최대 길이</label>
+              <span className="text-sm text-muted-foreground">{maxDuration}초</span>
             </div>
             <Slider
               min={1}
@@ -123,8 +123,8 @@ export function GenerationForm() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Segment Length</label>
-              <span className="text-sm text-muted-foreground">{segmentLength}s</span>
+              <label className="text-sm font-medium">세그먼트 길이</label>
+              <span className="text-sm text-muted-foreground">{segmentLength}초</span>
             </div>
             <Slider
               min={1}
@@ -142,11 +142,11 @@ export function GenerationForm() {
               className="flex-1"
             >
               <Wand2 className="h-4 w-4" aria-hidden="true" />
-              {state === "uploading" ? "Uploading..." : "Generate"}
+              {state === "uploading" ? "업로드 중..." : "생성 시작"}
             </Button>
             {(state === "completed" || state === "failed") && (
               <Button variant="outline" onClick={handleReset}>
-                New Generation
+                새로 생성
               </Button>
             )}
           </div>

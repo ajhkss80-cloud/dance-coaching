@@ -15,11 +15,11 @@ export default function HistoryPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Job History</CardTitle>
+            <CardTitle>작업 기록</CardTitle>
             {jobs.length > 0 && (
               <Button variant="outline" size="sm" onClick={clearHistory}>
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
-                Clear History
+                기록 삭제
               </Button>
             )}
           </div>
@@ -28,21 +28,21 @@ export default function HistoryPage() {
           {jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Inbox className="mb-4 h-12 w-12 text-muted-foreground" aria-hidden="true" />
-              <p className="text-lg font-medium">No jobs yet</p>
+              <p className="text-lg font-medium">작업 기록이 없습니다</p>
               <p className="text-sm text-muted-foreground">
-                Start generating or coaching to see your history here.
+                영상 생성이나 코칭을 시작하면 여기에 기록이 표시됩니다.
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" aria-label="Job history">
+              <table className="w-full text-sm" aria-label="작업 기록">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">Type</th>
-                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">Job ID</th>
-                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">Status</th>
-                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">Date</th>
-                    <th className="pb-3 text-left font-medium text-muted-foreground">Summary</th>
+                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">유형</th>
+                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">작업 ID</th>
+                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">상태</th>
+                    <th className="pb-3 pr-4 text-left font-medium text-muted-foreground">날짜</th>
+                    <th className="pb-3 text-left font-medium text-muted-foreground">요약</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -55,7 +55,7 @@ export default function HistoryPage() {
                           ) : (
                             <Target className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                           )}
-                          <span className="capitalize">{job.type}</span>
+                          <span>{job.type === "generate" ? "영상 생성" : "댄스 코칭"}</span>
                         </div>
                       </td>
                       <td className="py-3 pr-4">
@@ -65,7 +65,7 @@ export default function HistoryPage() {
                         <JobStatusBadge status={job.status as JobStatus} />
                       </td>
                       <td className="py-3 pr-4 text-muted-foreground">
-                        {new Date(job.createdAt).toLocaleDateString()}
+                        {new Date(job.createdAt).toLocaleDateString("ko-KR")}
                       </td>
                       <td className="py-3 text-muted-foreground">
                         {job.summary || "-"}

@@ -23,7 +23,7 @@ export function CoachResult({ result }: CoachResultProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Overall Score</CardTitle>
+          <CardTitle>종합 점수</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
           <div className={cn("text-6xl font-bold tabular-nums", scoreColor)}>
@@ -31,17 +31,17 @@ export function CoachResult({ result }: CoachResultProps) {
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             {result.overallScore >= 80
-              ? "Great performance!"
+              ? "훌륭한 퍼포먼스입니다!"
               : result.overallScore >= 60
-                ? "Good effort, keep practicing!"
-                : "Keep working at it!"}
+                ? "좋은 노력입니다, 계속 연습하세요!"
+                : "꾸준히 연습하면 나아질 거예요!"}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Joint Scores</CardTitle>
+          <CardTitle>관절별 점수</CardTitle>
         </CardHeader>
         <CardContent>
           <ScoreRadarChart jointScores={result.jointScores} />
@@ -51,7 +51,7 @@ export function CoachResult({ result }: CoachResultProps) {
       {result.feedback.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Feedback</CardTitle>
+            <CardTitle>코칭 피드백</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {result.feedback.map((item, i) => (

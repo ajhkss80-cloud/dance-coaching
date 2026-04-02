@@ -22,9 +22,9 @@ export function GenerationResult({ result }: GenerationResultProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Generation Complete</span>
+          <span>생성 완료</span>
           <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-            Success
+            성공
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -38,7 +38,7 @@ export function GenerationResult({ result }: GenerationResultProps) {
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Layers className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <span>{result.segmentCount} segments</span>
+            <span>{result.segmentCount}개 세그먼트</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Server className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -49,7 +49,7 @@ export function GenerationResult({ result }: GenerationResultProps) {
         <a href={videoSrc} download className="block">
           <Button variant="outline" className="w-full">
             <Download className="h-4 w-4" aria-hidden="true" />
-            Download Video
+            영상 다운로드
           </Button>
         </a>
       </CardContent>

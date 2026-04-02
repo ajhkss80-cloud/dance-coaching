@@ -30,14 +30,14 @@ export function CoachForm() {
   if (wsStatus === "completed" && state === "processing" && wsResult) {
     setState("completed");
     setResult(wsResult as CoachResultType);
-    if (jobId) updateJob(jobId, { status: "completed", summary: "Coaching analysis completed" });
-    addToast({ title: "Analysis complete", description: "Your coaching results are ready!" });
+    if (jobId) updateJob(jobId, { status: "completed", summary: "코칭 분석 완료" });
+    addToast({ title: "분석 완료", description: "코칭 결과가 준비되었습니다!" });
   }
   if (wsStatus === "failed" && state === "processing") {
     setState("failed");
-    setErrorMsg(wsError || "Analysis failed");
-    if (jobId) updateJob(jobId, { status: "failed", summary: wsError || "Failed" });
-    addToast({ title: "Analysis failed", description: wsError || "An error occurred", variant: "destructive" });
+    setErrorMsg(wsError || "분석 실패");
+    if (jobId) updateJob(jobId, { status: "failed", summary: wsError || "실패" });
+    addToast({ title: "분석 실패", description: wsError || "오류가 발생했습니다", variant: "destructive" });
   }
 
   const handleSubmit = useCallback(async () => {
@@ -54,9 +54,9 @@ export function CoachForm() {
       addJob({ jobId: response.jobId, type: "coach", status: "active" });
     } catch (err) {
       setState("failed");
-      const msg = err instanceof Error ? err.message : "Failed to start analysis";
+      const msg = err instanceof Error ? err.message : "분석을 시작할 수 없습니다";
       setErrorMsg(msg);
-      addToast({ title: "Error", description: msg, variant: "destructive" });
+      addToast({ title: "오류", description: msg, variant: "destructive" });
     }
   }, [userVideo, referenceVideo, addJob, addToast]);
 
@@ -73,21 +73,21 @@ export function CoachForm() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Dance Coach</CardTitle>
+          <CardTitle>댄스 코칭</CardTitle>
           <CardDescription>
-            Upload your dance video and a reference video to get AI-powered coaching feedback.
+            내 댄스 영상과 레퍼런스 영상을 업로드하여 AI 코칭 피드백을 받으세요.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <FileUpload
               accept="video/*"
-              label="Your Dance Video"
+              label="내 댄스 영상"
               onFileChange={setUserVideo}
             />
             <FileUpload
               accept="video/*"
-              label="Reference Video"
+              label="레퍼런스 영상"
               onFileChange={setReferenceVideo}
             />
           </div>
@@ -99,11 +99,11 @@ export function CoachForm() {
               className="flex-1"
             >
               <Target className="h-4 w-4" aria-hidden="true" />
-              {state === "uploading" ? "Uploading..." : "Analyze"}
+              {state === "uploading" ? "업로드 중..." : "분석 시작"}
             </Button>
             {(state === "completed" || state === "failed") && (
               <Button variant="outline" onClick={handleReset}>
-                New Analysis
+                새로 분석
               </Button>
             )}
           </div>

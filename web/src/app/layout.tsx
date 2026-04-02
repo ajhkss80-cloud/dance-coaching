@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dance Coaching Platform",
-  description: "AI-powered dance generation and coaching",
+  title: "AI 댄스 코칭 플랫폼",
+  description: "AI 기반 댄스 영상 생성 및 코칭 피드백 플랫폼",
 };
 
 export default function RootLayout({
@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >

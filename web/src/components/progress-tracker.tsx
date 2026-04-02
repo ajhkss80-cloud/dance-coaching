@@ -24,7 +24,7 @@ export function ProgressTracker({ jobId, className }: ProgressTrackerProps) {
             <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
           )}
           <span className="text-sm font-medium">
-            {status === "active" ? "Processing..." : status === "queued" ? "Queued..." : "Job Status"}
+            {status === "active" ? "처리 중..." : status === "queued" ? "대기 중..." : "작업 상태"}
           </span>
         </div>
         {status && <JobStatusBadge status={status} />}
@@ -33,13 +33,13 @@ export function ProgressTracker({ jobId, className }: ProgressTrackerProps) {
       <Progress value={progress} />
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>{progressMessage || "Waiting..."}</span>
+        <span>{progressMessage || "대기 중..."}</span>
         <span>{Math.round(progress)}%</span>
       </div>
 
       {error && (
         <p className="text-sm text-destructive" role="alert">
-          Error: {error}
+          오류: {error}
         </p>
       )}
     </div>

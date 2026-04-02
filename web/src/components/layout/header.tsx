@@ -12,19 +12,19 @@ import Link from "next/link";
 import { Home, Wand2, Target, Clock, Settings } from "lucide-react";
 
 const titles: Record<string, string> = {
-  "/": "Dashboard",
-  "/generate": "Generate Dance",
-  "/coach": "Dance Coach",
-  "/history": "Job History",
-  "/settings": "Settings",
+  "/": "대시보드",
+  "/generate": "댄스 영상 생성",
+  "/coach": "댄스 코칭",
+  "/history": "작업 기록",
+  "/settings": "설정",
 };
 
 const mobileNavItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/generate", label: "Generate", icon: Wand2 },
-  { href: "/coach", label: "Coach", icon: Target },
-  { href: "/history", label: "History", icon: Clock },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "홈", icon: Home },
+  { href: "/generate", label: "영상 생성", icon: Wand2 },
+  { href: "/coach", label: "댄스 코칭", icon: Target },
+  { href: "/history", label: "작업 기록", icon: Clock },
+  { href: "/settings", label: "설정", icon: Settings },
 ];
 
 export function Header() {
@@ -40,7 +40,7 @@ export function Header() {
   });
 
   const isHealthy = health?.status === "ok";
-  const title = titles[pathname] || "Dance Coaching";
+  const title = titles[pathname] || "댄스 코칭";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-6">
@@ -50,7 +50,7 @@ export function Header() {
           size="icon"
           className="lg:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
+          aria-label="메뉴 열기/닫기"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -58,7 +58,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-label="Backend health">
+        <div className="flex items-center gap-2 text-sm" role="status" aria-label="서버 연결 상태">
           <div
             className={cn(
               "h-2.5 w-2.5 rounded-full",
@@ -66,14 +66,19 @@ export function Header() {
             )}
             aria-hidden="true"
           />
-          <span className="hidden sm:inline">{isHealthy ? "Connected" : "Disconnected"}</span>
+          <span className={cn(
+            "hidden sm:inline",
+            isHealthy ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+          )}>
+            {isHealthy ? "서버 연결됨" : "서버 연결 안됨"}
+          </span>
         </div>
 
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          aria-label={`${theme === "dark" ? "라이트" : "다크"} 모드로 전환`}
         >
           <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />

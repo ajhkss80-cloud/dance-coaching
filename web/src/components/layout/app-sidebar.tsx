@@ -6,11 +6,11 @@ import { Home, Wand2, Target, Clock, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/generate", label: "Generate", icon: Wand2 },
-  { href: "/coach", label: "Coach", icon: Target },
-  { href: "/history", label: "History", icon: Clock },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "홈", icon: Home },
+  { href: "/generate", label: "영상 생성", icon: Wand2 },
+  { href: "/coach", label: "댄스 코칭", icon: Target },
+  { href: "/history", label: "작업 기록", icon: Clock },
+  { href: "/settings", label: "설정", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -22,7 +22,7 @@ export function AppSidebar() {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
           D
         </div>
-        <span className="text-lg font-semibold">Dance Coach</span>
+        <span className="text-lg font-semibold">댄스 코치</span>
       </div>
 
       <nav className="flex-1 space-y-1 p-4" aria-label="Main navigation">
@@ -48,7 +48,7 @@ export function AppSidebar() {
       </nav>
 
       <div className="border-t border-border p-4">
-        <p className="text-xs text-muted-foreground">Dance Coaching Platform</p>
+        <p className="text-xs text-muted-foreground">AI 댄스 코칭 플랫폼</p>
       </div>
     </aside>
   );

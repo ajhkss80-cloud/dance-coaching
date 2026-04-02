@@ -26,7 +26,7 @@ export function VideoPlayer({ src, className, poster }: VideoPlayerProps) {
         preload="metadata"
       >
         <track kind="captions" />
-        Your browser does not support the video element.
+        브라우저가 비디오 재생을 지원하지 않습니다.
       </video>
     </div>
   );
